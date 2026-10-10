@@ -122,6 +122,15 @@ npm run news -- test-source divaina
 Some sites block datacenter IPs with 403 errors or captchas but work from a home connection. The
 `enabled` flags reflect a probe from a cloud IP.
 
+## Comparing models
+```bash
+npm run compare -- --models gemini:gemini-3.8-flash,openrouter:google/gemma-4-31b-it:free
+```
+This fetches fresh Sinhala, Tamil and English articles, runs each model on the same analysis prompt, and writes a
+side-by-side report to `work/compare-*.md`. Model specs are `gemini:`, `openrouter:` (needs `OPENROUTER_API_KEY`),
+`anthropic:` and `openai:`. To switch the pipeline to an OpenRouter model, set `LLM_PROVIDER=openai`,
+`OPENAI_BASE_URL=https://openrouter.ai/api/v1`, `OPENAI_API_KEY` and `OPENAI_MODEL`.
+
 ## Development
 ```bash
 npm run typecheck
