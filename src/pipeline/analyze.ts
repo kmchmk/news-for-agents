@@ -85,21 +85,25 @@ export async function saveAnalysis(
     ],
   );
 
-  await query(`delete from article_entities where article_id = $1`, [articleId]);
-  const seen = new Set<string>();
+  const ents = new Map<string, { name: string; type: string }>();
   for (const e of analysis.entities) {
     const name = e.name.trim();
     const slug = entitySlug(e.type, name);
-    if (!name || slug.endsWith(":") || seen.has(slug)) continue;
-    seen.add(slug);
-    const [row] = await query<{ id: number }>(
-      `insert into entities (slug, name, type) values ($1,$2,$3)
-       on conflict (slug) do update set name = entities.name
-       returning id::int`,
-      [slug, name, e.type],
-    );
-    await query(`insert into article_entities (article_id, entity_id) values ($1,$2) on conflict do nothing`, [articleId, row.id]);
+    if (name && !slug.endsWith(":") && !ents.has(slug)) ents.set(slug, { name, type: e.type });
   }
+  await query(`delete from article_entities where article_id = $1`, [articleId]);
+  if (!ents.size) return;
+  // Upsert all entities and link them to the article in one round trip.
+  await query(
+    `with upserted as (
+       insert into entities (slug, name, type)
+       select * from unnest($2::text[], $3::text[], $4::text[])
+       on conflict (slug) do update set name = entities.name
+       returning id)
+     insert into article_entities (article_id, entity_id)
+     select $1, id from upserted on conflict do nothing`,
+    [articleId, [...ents.keys()], [...ents.values()].map((e) => e.name), [...ents.values()].map((e) => e.type)],
+  );
 }
 
 export interface AnalyzeOptions {
