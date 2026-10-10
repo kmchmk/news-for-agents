@@ -204,19 +204,25 @@ export async function search(opts: {
   const cols = opts.type === "stories" ? STORY_COLS : ARTICLE_COLS;
   const timeCol = opts.type === "stories" ? "s.last_updated_at" : "a.published_at";
   const base = opts.type === "articles" ? `a.status = 'analyzed'` : "true";
-  const params: unknown[] = [opts.q, opts.since ?? new Date(0), opts.limit];
-
+  const since = opts.since ?? new Date(0);
   let sql: string;
+  let params: unknown[];
   if (mode === "keyword") {
+    params = [opts.q, since, opts.limit];
     sql = `select ${cols}, round(ts_rank(${alias}.search, ${tsq("$1")})::numeric, 4)::float as score
              from ${table}
             where ${base} and ${timeCol} >= $2 and ${alias}.search @@ ${tsq("$1")}
             order by score desc, ${timeCol} desc limit $3`;
   } else {
-    params.push(toVector(vec));
     // Semantic: cosine similarity. Hybrid: similarity plus a bonus for keyword matches.
-    const kw = mode === "hybrid" ? ` + case when ${alias}.search @@ ${tsq("$1")} then 0.1 else 0 end` : "";
-    sql = `select ${cols}, round((1 - (${alias}.embedding <=> $4::vector)${kw})::numeric, 4)::float as score
+    // Every parameter must appear in the SQL (Postgres can't type an unused one).
+    params = [toVector(vec), since, opts.limit];
+    let kw = "";
+    if (mode === "hybrid") {
+      params.push(opts.q);
+      kw = ` + case when ${alias}.search @@ ${tsq("$4")} then 0.1 else 0 end`;
+    }
+    sql = `select ${cols}, round((1 - (${alias}.embedding <=> $1::vector)${kw})::numeric, 4)::float as score
              from ${table}
             where ${base} and ${timeCol} >= $2 and ${alias}.embedding is not null
             order by score desc limit $3`;
