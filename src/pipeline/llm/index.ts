@@ -90,7 +90,7 @@ function gemini(): GoogleGenAI {
 }
 
 function geminiLLM(): LLM {
-  const model = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
+  const model = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
   return {
     id: `gemini/${model}`,
     async generateJSON({ system, prompt, schema }) {

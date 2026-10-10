@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { closePool, query } from "../lib/db.js";
+import { closePool, query, splitSql } from "../lib/db.js";
 import { analyzePending } from "./analyze.js";
 import { assignStories, summarizeStories } from "./cluster.js";
 import { exportWork, importWork } from "./agent-io.js";
@@ -75,7 +75,7 @@ async function timed<T>(step: string, fn: () => Promise<T>): Promise<T> {
 
 async function migrate() {
   const sql = readFileSync(fileURLToPath(new URL("../../db/schema.sql", import.meta.url)), "utf8");
-  await query(sql);
+  for (const statement of splitSql(sql)) await query(statement);
   log("✔ schema up to date");
 }
 

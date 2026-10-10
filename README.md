@@ -92,7 +92,7 @@ gcloud auth application-default login
 # .env: GOOGLE_CLOUD_PROJECT=YOUR_PROJECT (and leave VERTEX_API_KEY empty)
 ```
 
-Usage is billed to the project, so the credits apply. The default model is `gemini-flash-latest`;
+Usage is billed to the project, so the credits apply. The default model is `gemini-3.6-flash`;
 pin a specific version with `GEMINI_MODEL`. Analysis takes one call per article, up to about 6k
 characters of input, plus an occasional call for story matching or summarizing.
 

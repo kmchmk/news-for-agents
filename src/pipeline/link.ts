@@ -6,7 +6,7 @@
  */
 import { UndirectedGraph } from "graphology";
 import louvainImport from "graphology-communities-louvain";
-import { query, getPool } from "../lib/db.js";
+import { query, transaction, type Statement } from "../lib/db.js";
 import { RETENTION_DAYS } from "../lib/config.js";
 import type { Logger } from "./log.js";
 
@@ -111,22 +111,17 @@ export function buildStoryGraph(storyIds: number[], rows: StoryEntityRow[], simi
 }
 
 export async function rebuildGraph(opts: { log: Logger }): Promise<{ stories: number; links: number; communities: number }> {
-  await query(`delete from story_entities`);
-  await query(
-    `insert into story_entities (story_id, entity_id, mentions)
-     select a.story_id, ae.entity_id, count(*)
-       from article_entities ae join articles a on a.id = ae.article_id
-      where a.story_id is not null
-      group by a.story_id, ae.entity_id`,
-  );
 
   const stories = (
     await query<{ id: number }>(`select id::int from stories where last_updated_at > now() - make_interval(days => $1)`, [RETENTION_DAYS])
   ).map((r) => r.id);
+  // Computed from articles directly; story_entities itself is rewritten in the transaction below.
   const rows = await query<StoryEntityRow>(
-    `select se.story_id::int, se.entity_id::int, e.name
-       from story_entities se join entities e on e.id = se.entity_id
-      where se.story_id = any($1)`,
+    `select distinct a.story_id::int, ae.entity_id::int, e.name
+       from article_entities ae
+       join articles a on a.id = ae.article_id
+       join entities e on e.id = ae.entity_id
+      where a.story_id = any($1)`,
     [stories],
   );
   const similar = await query<SimilarRow>(
@@ -143,32 +138,34 @@ export async function rebuildGraph(opts: { log: Logger }): Promise<{ stories: nu
 
   const { links, community } = buildStoryGraph(stories, rows, similar.map((r) => ({ ...r, sim: Number(r.sim) })));
 
-  const client = await getPool().connect();
-  try {
-    await client.query("begin");
-    await client.query(`delete from story_links`);
-    for (let i = 0; i < links.length; i += 200) {
-      const chunk = links.slice(i, i + 200);
-      const params: unknown[] = [];
-      const values = chunk.map((l) => {
-        params.push(l.a, l.b, l.relation, l.weight, l.shared);
-        const o = params.length - 5;
-        return `($${o + 1},$${o + 2},$${o + 3},$${o + 4},$${o + 5})`;
-      });
-      await client.query(`insert into story_links (story_a, story_b, relation, weight, shared) values ${values.join(",")}`, params);
-    }
-    await client.query(
-      `update stories s set community = c.community
-         from unnest($1::bigint[], $2::int[]) as c(id, community) where s.id = c.id`,
-      [[...community.keys()], [...community.values()]],
-    );
-    await client.query("commit");
-  } catch (e) {
-    await client.query("rollback");
-    throw e;
-  } finally {
-    client.release();
+  const statements: Statement[] = [
+    { text: `delete from story_entities` },
+    {
+      text: `insert into story_entities (story_id, entity_id, mentions)
+             select a.story_id, ae.entity_id, count(*)
+               from article_entities ae join articles a on a.id = ae.article_id
+              where a.story_id is not null
+              group by a.story_id, ae.entity_id`,
+    },
+    { text: `delete from story_links` },
+  ];
+  for (let i = 0; i < links.length; i += 200) {
+    const chunk = links.slice(i, i + 200);
+    const params: unknown[] = [];
+    const values = chunk.map((l) => {
+      params.push(l.a, l.b, l.relation, l.weight, l.shared);
+      const o = params.length - 5;
+      return `($${o + 1},$${o + 2},$${o + 3},$${o + 4},$${o + 5})`;
+    });
+    statements.push({ text: `insert into story_links (story_a, story_b, relation, weight, shared) values ${values.join(",")}`, params });
   }
+  statements.push({
+    text: `update stories s set community = c.community
+             from unnest($1::bigint[], $2::int[]) as c(id, community) where s.id = c.id`,
+    params: [[...community.keys()], [...community.values()]],
+  });
+  await transaction(statements);
+
   const communities = new Set([...community.values()].filter((c) => c !== null)).size;
   opts.log(`  graph: ${stories.length} stories, ${links.length} links, ${communities} communities`);
   return { stories: stories.length, links: links.length, communities };

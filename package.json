@@ -20,6 +20,7 @@
     "@google/genai": "^2.28.0",
     "@hono/node-server": "^2.1.4",
     "@mozilla/readability": "^0.6.0",
+    "@neondatabase/serverless": "^1.2.0",
     "graphology": "^0.26.0",
     "graphology-communities-louvain": "^2.0.2",
     "graphology-traversal": "^0.3.1",
