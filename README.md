@@ -93,8 +93,11 @@ gcloud auth application-default login
 # .env: GOOGLE_CLOUD_PROJECT=YOUR_PROJECT (and leave VERTEX_API_KEY empty)
 ```
 
-Usage is billed to the project, so the credits apply. The default model is `gemini-3.6-flash`;
-pin a specific version with `GEMINI_MODEL`. Analysis takes one call per article, up to about 6k
+Usage is billed to the project, so the credits apply. The default model is `gemini-3.8-flash`;
+pin a specific version with `GEMINI_MODEL`.
+Gemini 3.6, 3.7 and 3.8 Flash cost the same on Vertex: $0.75 input / $3.75 output per 1M tokens until
+2026-12-31, then $1.50 / $7.50. With default thinking, measured analysis cost is about $0.004 per article,
+or about $2 a day for 500 new articles. `GEMINI_THINKING_LEVEL=LOW` cuts that by ~30% but misspelled names in testing. Analysis takes one call per article, up to about 6k
 characters of input, plus an occasional call for story matching or summarizing.
 
 **Other LLMs:** use `LLM_PROVIDER=anthropic` or `openai` (any OpenAI-compatible endpoint, including local

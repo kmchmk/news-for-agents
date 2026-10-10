@@ -10,7 +10,7 @@
  * Ollama, Groq, vLLM...) via OPENAI_BASE_URL.
  */
 import { z } from "zod";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, type ThinkingLevel } from "@google/genai";
 import { EMBEDDING_DIM } from "../../lib/config.js";
 
 export interface JsonRequest<T> {
@@ -90,7 +90,8 @@ function gemini(): GoogleGenAI {
 }
 
 function geminiLLM(): LLM {
-  const model = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
+  const model = process.env.GEMINI_MODEL ?? "gemini-3.8-flash";
+  const thinkingLevel = process.env.GEMINI_THINKING_LEVEL as ThinkingLevel | undefined; // e.g. LOW
   return {
     id: `gemini/${model}`,
     async generateJSON({ system, prompt, schema }) {
@@ -103,6 +104,8 @@ function geminiLLM(): LLM {
             responseMimeType: "application/json",
             responseJsonSchema: jsonSchemaOf(schema),
             temperature: 0.2,
+            // Thinking tokens are billed as output. LOW is ~30% cheaper but misspelled names in tests.
+            ...(thinkingLevel ? { thinkingConfig: { thinkingLevel } } : {}),
           },
         });
         return schema.parse(parseJsonReply(res.text ?? ""));
