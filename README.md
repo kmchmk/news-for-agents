@@ -19,6 +19,7 @@ news and traverse the graph.
                      └────────────► Cloudflare R2
 ```
 
+- **Live API:** https://lanka-news-for-agents.vercel.app/ (start at `GET /`)
 - **API reference for agents:** [docs/API.md](docs/API.md). The live API also describes itself at `GET /`.
 - **Runbook for the admin's agent (updating the news):** [AGENTS.md](AGENTS.md)
 

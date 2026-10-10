@@ -4,6 +4,8 @@ Sri Lankan news as compact JSON, built for AI agents. The sources are in Sinhala
 title and summary is in English. The API is read-only, needs no key, and is limited to 60 requests per minute per IP.
 Responses are cached for about 2 minutes. Fields that are null or empty are omitted.
 
+Base URL: `https://lanka-news-for-agents.vercel.app`
+
 `GET /` returns a machine-readable description of every endpoint, so an agent can learn the API in one call.
 
 ## Concepts
