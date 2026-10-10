@@ -1,0 +1,207 @@
+# News sources. PROPOSED LIST - awaiting admin approval.
+#
+# kind:
+#   rss      - RSS/Atom feed. Article pages are fetched and their text extracted.
+#   html     - No feed: links are collected from `url` (a listing page) using
+#              `link_pattern` (a regex matched against absolute URLs).
+#   youtube  - YouTube channel feed (title + description only, no page fetch).
+#   reddit   - Reddit subreddit feed (post text from the feed, no page fetch).
+# language: primary language of the source (si = Sinhala, ta = Tamil, en = English).
+# max_items: max new items taken per fetch run (default 25).
+#
+# "verified" notes record a probe made on 2026-10-10 from a cloud IP. Sites that
+# returned 403 there are often fine from a residential IP; try enabling them locally.
+
+sources:
+  # ---------------- English ----------------
+  - id: adaderana-en
+    name: Ada Derana (English)
+    kind: rss
+    url: https://www.adaderana.lk/rss.php
+    language: en
+    enabled: true            # verified: 25 items
+
+  - id: dailymirror-breaking
+    name: Daily Mirror - Breaking News
+    kind: rss
+    url: https://www.dailymirror.lk/rss/breaking_news/108
+    language: en
+    enabled: true            # verified
+
+  - id: dailymirror-latest
+    name: Daily Mirror - Latest News
+    kind: rss
+    url: https://www.dailymirror.lk/rss/latest_news/155
+    language: en
+    enabled: true            # verified
+
+  - id: dailymirror-business
+    name: Daily Mirror - Business
+    kind: rss
+    url: https://www.dailymirror.lk/rss/business/215
+    language: en
+    enabled: true            # verified
+
+  - id: dailyft-top
+    name: Daily FT - Top Stories
+    kind: rss
+    url: https://www.ft.lk/rss/top-story/26
+    language: en
+    enabled: true            # verified
+
+  - id: economynext
+    name: EconomyNext
+    kind: rss
+    url: https://economynext.com/feed/
+    language: en
+    enabled: true            # verified: 20 items
+
+  - id: lbo
+    name: Lanka Business Online
+    kind: rss
+    url: https://www.lankabusinessonline.com/feed/
+    language: en
+    enabled: true            # verified
+
+  - id: newslk
+    name: News.lk (Government news portal)
+    kind: rss
+    url: https://www.news.lk/news?format=feed
+    language: en
+    enabled: true            # verified
+
+  - id: newsfirst-en
+    name: Newsfirst (English)
+    kind: html
+    url: https://www.newsfirst.lk/latest
+    home_url: https://www.newsfirst.lk/
+    link_pattern: '^https://(www\.|english\.)?newsfirst\.lk/20\d\d/\d\d/\d\d/[^/?#]+/?$'
+    language: en
+    enabled: true            # homepage reachable; RSS returns 403
+
+  - id: hirunews-si
+    name: Hiru News (Sinhala)
+    kind: html
+    url: https://www.hirunews.lk/
+    link_pattern: '^https://(www\.)?hirunews\.lk/\d{5,}/[^/?#]+$'
+    language: si             # English URL slugs, but article text is Sinhala
+    enabled: true
+
+  - id: tamilguardian
+    name: Tamil Guardian
+    kind: rss
+    url: https://www.tamilguardian.com/rss.xml
+    language: en
+    enabled: true            # verified; Tamil-community perspective
+
+  - id: cbsl
+    name: Central Bank of Sri Lanka - Press releases
+    kind: rss
+    url: https://www.cbsl.gov.lk/en/rss.xml
+    language: en
+    enabled: true            # verified
+
+  - id: dailyft-opinion
+    name: Daily FT - Opinion
+    kind: rss
+    url: https://www.ft.lk/rss/opinion/14
+    language: en
+    enabled: false           # verified; opinion pieces, off by default
+
+  - id: dailynews
+    name: Daily News
+    kind: rss
+    url: https://www.dailynews.lk/feed/
+    language: en
+    enabled: false           # 403 from cloud IP
+
+  - id: groundviews
+    name: Groundviews
+    kind: rss
+    url: https://groundviews.org/feed/
+    language: en
+    enabled: false           # 403 from cloud IP
+
+  # ---------------- Sinhala ----------------
+  - id: adaderana-si
+    name: Ada Derana (Sinhala)
+    kind: rss
+    url: https://sinhala.adaderana.lk/rss.php
+    language: si
+    enabled: true            # verified: 25 items
+
+  - id: lankadeepa
+    name: Lankadeepa
+    kind: rss
+    url: https://www.lankadeepa.lk/rss/latest_news/1
+    language: si
+    enabled: true            # verified
+
+  - id: divaina
+    name: Divaina
+    kind: rss
+    url: https://www.divaina.lk/feed/
+    language: si
+    enabled: true            # verified
+
+  - id: newsfirst-si
+    name: Newsfirst (Sinhala)
+    kind: html
+    url: https://sinhala.newsfirst.lk/
+    link_pattern: '^https://sinhala\.newsfirst\.lk/20\d\d/\d\d/\d\d/[^?#]+$'
+    language: si
+    enabled: true
+
+  - id: mawbima
+    name: Mawbima
+    kind: rss
+    url: https://mawbima.lk/feed/
+    language: si
+    enabled: false           # 403 from cloud IP
+
+  # ---------------- Tamil ----------------
+  - id: tamilmirror
+    name: Tamil Mirror
+    kind: rss
+    url: https://www.tamilmirror.lk/rss/news/175
+    language: ta
+    enabled: true            # verified
+
+  - id: virakesari
+    name: Virakesari
+    kind: html
+    url: https://www.virakesari.lk/category/local
+    home_url: https://www.virakesari.lk/
+    link_pattern: '^https://(www\.)?virakesari\.lk/article/\d+'
+    language: ta
+    enabled: true
+
+  - id: newsfirst-ta
+    name: Newsfirst (Tamil)
+    kind: html
+    url: https://tamil.newsfirst.lk/
+    link_pattern: '^https://tamil\.newsfirst\.lk/20\d\d/\d\d/\d\d/[^?#]+$'
+    language: ta
+    enabled: true
+
+  - id: thinakaran
+    name: Thinakaran
+    kind: rss
+    url: https://www.thinakaran.lk/feed/
+    language: ta
+    enabled: false           # 403 from cloud IP
+
+  # ---------------- Social / video ----------------
+  - id: reddit-srilanka
+    name: r/srilanka
+    kind: reddit
+    url: https://www.reddit.com/r/srilanka/new/.rss
+    language: en
+    enabled: false           # verified; mostly discussion, enable if you want public sentiment
+
+  - id: youtube-adaderana
+    name: Ada Derana (YouTube)
+    kind: youtube
+    url: https://www.youtube.com/feeds/videos.xml?user=adaderana
+    language: si
+    enabled: false           # verified; titles/descriptions only
