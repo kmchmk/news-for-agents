@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { canonicalUrl, dateFromUrl, fixPublishedAt } from "../src/pipeline/fetch.js";
-import { decodeBody, detectCharset } from "../src/pipeline/sources/http.js";
+import { assertPublicUrl, decodeBody, detectCharset, isPublicAddress } from "../src/pipeline/sources/http.js";
 import { extractLinks, parseFeed } from "../src/pipeline/sources/discover.js";
 import { extractArticle } from "../src/pipeline/sources/extract.js";
 import { entitySlug } from "../src/pipeline/analyze.js";
@@ -27,6 +27,16 @@ describe("fetching helpers", () => {
   it("canonicalizes URLs", () => {
     expect(canonicalUrl("http://example.lk/a?utm_source=x&id=2#top")).toBe("https://example.lk/a?id=2");
     expect(canonicalUrl("https://sinhala.newsfirst.lk/2026/10/10/%e0%b7%81%e0%b7%8a")).toBe("https://sinhala.newsfirst.lk/2026/10/10/ශ්");
+  });
+
+  it("blocks internal addresses (SSRF guard)", async () => {
+    for (const ip of ["127.0.0.1", "10.1.2.3", "172.20.0.1", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0", "::1", "fd00::1", "fe80::1", "::ffff:127.0.0.1"])
+      expect(isPublicAddress(ip), ip).toBe(false);
+    for (const ip of ["104.26.14.219", "8.8.8.8", "2606:4700::6810:ed3"]) expect(isPublicAddress(ip), ip).toBe(true);
+    await expect(assertPublicUrl("http://169.254.169.254/latest/meta-data")).rejects.toThrow(/non-public/);
+    await expect(assertPublicUrl("http://localhost:5432/")).rejects.toThrow(/non-public/);
+    await expect(assertPublicUrl("http://[::1]/")).rejects.toThrow(/non-public/);
+    await expect(assertPublicUrl("file:///etc/passwd")).rejects.toThrow(/scheme/);
   });
 
   it("reads dates from URLs", () => {

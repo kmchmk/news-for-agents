@@ -6,7 +6,7 @@
 import { createHash } from "node:crypto";
 import { S3Client, PutObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import { query } from "../lib/db.js";
-import { mapLimit } from "./sources/http.js";
+import { mapLimit, safeFetch } from "./sources/http.js";
 import type { Logger } from "./log.js";
 
 const MAX_BYTES = 3 * 1024 * 1024;
@@ -48,7 +48,7 @@ export async function mirrorImages(opts: { limit?: number; log: Logger }): Promi
   const stats = { mirrored: 0, failed: 0 };
   await mapLimit(rows, 4, async (row) => {
     try {
-      const res = await fetch(row.image_url, { signal: AbortSignal.timeout(15_000), headers: { "user-agent": "Mozilla/5.0" } });
+      const res = await safeFetch(row.image_url, { timeoutMs: 15_000, headers: { "user-agent": "Mozilla/5.0" } });
       const type = (res.headers.get("content-type") ?? "").split(";")[0].trim();
       if (!res.ok || !EXT[type]) throw new Error(`bad image response ${res.status} ${type}`);
       const body = new Uint8Array(await res.arrayBuffer());
