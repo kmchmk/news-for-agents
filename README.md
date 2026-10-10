@@ -63,7 +63,7 @@ text is dropped after analysis and only the summaries are kept.
 
 ### Vercel (API)
 1. Import this GitHub repo in Vercel. No build settings are needed: `api/index.ts` is the only function.
-2. Set the environment variable `DATABASE_URL`. For semantic search, also set
+2. Set the environment variable `DATABASE_URL` to a **read-only** role (see `db/reader-role.sql`), not the owner role the pipeline uses. For semantic search, also set
    `EMBEDDING_PROVIDER=gemini` and `VERTEX_API_KEY`. The query embedding model must match the one the pipeline used.
 3. Optional: in Vercel Firewall, add a rate-limit rule on `/v1/*` for extra protection.
 
