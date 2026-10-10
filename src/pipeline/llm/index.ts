@@ -4,9 +4,9 @@
  *   LLM_PROVIDER        gemini (default) | anthropic | openai | none
  *   EMBEDDING_PROVIDER  gemini (default) | openai | none | mock
  *
- * Gemini runs on Vertex AI (uses Google Cloud credits) when GOOGLE_CLOUD_PROJECT is set
- * (auth via `gcloud auth application-default login`), otherwise on the Gemini API with
- * GEMINI_API_KEY. "openai" means any OpenAI-compatible endpoint (OpenAI, OpenRouter,
+ * Gemini runs on Vertex AI (uses Google Cloud credits) with VERTEX_API_KEY (a Google Cloud
+ * API key bound to a service account), or with GOOGLE_CLOUD_PROJECT and
+ * `gcloud auth application-default login`; otherwise on the Gemini API with GEMINI_API_KEY. "openai" means any OpenAI-compatible endpoint (OpenAI, OpenRouter,
  * Ollama, Groq, vLLM...) via OPENAI_BASE_URL.
  */
 import { z } from "zod";
@@ -79,9 +79,12 @@ let genai: GoogleGenAI | undefined;
 function gemini(): GoogleGenAI {
   if (!genai) {
     const project = process.env.GOOGLE_CLOUD_PROJECT;
-    genai = project
-      ? new GoogleGenAI({ vertexai: true, project, location: process.env.GOOGLE_CLOUD_LOCATION ?? "global" })
-      : new GoogleGenAI({ apiKey: env("GEMINI_API_KEY") });
+    const vertexKey = process.env.VERTEX_API_KEY;
+    genai = vertexKey
+      ? new GoogleGenAI({ vertexai: true, apiKey: vertexKey })
+      : project
+        ? new GoogleGenAI({ vertexai: true, project, location: process.env.GOOGLE_CLOUD_LOCATION ?? "global" })
+        : new GoogleGenAI({ apiKey: env("GEMINI_API_KEY") });
   }
   return genai;
 }

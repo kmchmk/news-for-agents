@@ -63,7 +63,7 @@ text is dropped after analysis and only the summaries are kept.
 ### Vercel (API)
 1. Import this GitHub repo in Vercel. No build settings are needed: `api/index.ts` is the only function.
 2. Set the environment variable `DATABASE_URL`. For semantic search, also set
-   `EMBEDDING_PROVIDER=gemini` and `GEMINI_API_KEY`. The query embedding model must match the one the pipeline used.
+   `EMBEDDING_PROVIDER=gemini` and `VERTEX_API_KEY`. The query embedding model must match the one the pipeline used.
 3. Optional: in Vercel Firewall, add a rate-limit rule on `/v1/*` for extra protection.
 
 Abuse and DDoS protection is layered:
@@ -73,14 +73,28 @@ Abuse and DDoS protection is layered:
 - Every parameter (`limit`, `depth`, `offset`) has a hard cap.
 
 ### Google Cloud (LLM with your credits)
+Option 1 is an API key bound to a service account; it is the simplest, and it also works on Vercel:
+1. Google Cloud console → select or create a project with billing linked to your credits.
+2. **APIs & Services → Library**: enable the **Vertex AI API**.
+3. **IAM & Admin → Service Accounts → Create service account** (for example `news-for-agents`), with the role
+   **Vertex AI User** (`roles/aiplatform.user`).
+4. **APIs & Services → Credentials → Create credentials → API key**. Tick
+   **"Authenticate API calls through a service account"** and pick the service account from step 3.
+   Under API restrictions, restrict the key to **Vertex AI API**.
+5. Put it in `.env` as `VERTEX_API_KEY=...`, with `LLM_PROVIDER=gemini` and `EMBEDDING_PROVIDER=gemini`.
+
+If step 4 is blocked by the org policy `iam.managed.disableServiceAccountApiKeyCreation`, either relax it
+(Organization Policy Administrator role) or use option 2.
+
+Option 2 is Application Default Credentials, for local use only:
 ```bash
 gcloud auth application-default login
-gcloud services enable aiplatform.googleapis.com --project YOUR_PROJECT
-# .env: LLM_PROVIDER=gemini, EMBEDDING_PROVIDER=gemini, GOOGLE_CLOUD_PROJECT=YOUR_PROJECT
+# .env: GOOGLE_CLOUD_PROJECT=YOUR_PROJECT (and leave VERTEX_API_KEY empty)
 ```
-Gemini on Vertex AI is billed to the project, so the credits apply. The default model is `gemini-flash-latest`;
-pin a specific version with `GEMINI_MODEL`. Analysis takes one call per article, up to about 6k characters of
-input, plus an occasional call for story matching or summarizing.
+
+Usage is billed to the project, so the credits apply. The default model is `gemini-flash-latest`;
+pin a specific version with `GEMINI_MODEL`. Analysis takes one call per article, up to about 6k
+characters of input, plus an occasional call for story matching or summarizing.
 
 **Other LLMs:** use `LLM_PROVIDER=anthropic` or `openai` (any OpenAI-compatible endpoint, including local
 Ollama), or use no API at all. In that case, `npm run news -- export articles` writes a self-describing
