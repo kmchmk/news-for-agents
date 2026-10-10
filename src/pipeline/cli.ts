@@ -15,6 +15,7 @@ import { rebuildGraph } from "./link.js";
 import { createEmbedder, createLLM } from "./llm/index.js";
 import { consoleLogger as log } from "./log.js";
 import { prune } from "./prune.js";
+import { usageSummary } from "./llm/usage.js";
 import { loadSources } from "./sources/config.js";
 import { discover } from "./sources/discover.js";
 
@@ -42,6 +43,7 @@ Commands:
   export <articles|stories> [--limit 20] [--out file]   Export work for an external agent
   import <file>           Import results produced by an external agent
   stats                   Show counts and data freshness
+  cost                    LLM cost of recent runs [--limit 10]
 
 Providers (env): LLM_PROVIDER=gemini|anthropic|openai|none  EMBEDDING_PROVIDER=gemini|openai|none
 Override per run with --llm <provider> and --embedding <provider>.`;
@@ -166,6 +168,15 @@ async function main() {
       await timed("summarize", () => summarizeStories({ llm: model, log }));
       await timed("link", () => rebuildGraph({ log }));
       await timed("prune", () => prune({ log }));
+      const [counts] = await query(
+        `select (select count(*) from articles where status='analyzed')::int as articles,
+                (select count(*) from stories)::int as stories`,
+      );
+      await timed("run-total", async () => ({ ...usageSummary(), ...counts }));
+      const u = usageSummary();
+      log(`\n💰 LLM cost this run: $${u.total_cost_usd.toFixed(4)}`);
+      for (const [m, t] of Object.entries(u.models))
+        log(`   ${m}: ${t.calls} calls, ${t.input} in / ${t.output} out / ${t.thinking} thinking tokens → ${t.cost_usd === null ? "unpriced" : "$" + t.cost_usd.toFixed(4)}`);
       break;
     }
 
@@ -189,6 +200,17 @@ async function main() {
       log(`✔ imported ${res.imported} ${res.kind}${res.errors.length ? `, ${res.errors.length} errors` : ""}`);
       for (const e of res.errors) log(`  ${e}`);
       if (res.kind === "articles") log("  next: npm run news -- cluster && npm run news -- link");
+      break;
+    }
+
+    case "cost": {
+      // Cost of recent runs, from pipeline_runs.
+      const rows = await query(
+        `select finished_at, stats->>'total_cost_usd' as cost_usd, stats->>'articles' as articles
+           from pipeline_runs where step = 'run-total' order by finished_at desc limit $1`,
+        [num(values.limit, 10)],
+      );
+      console.table(rows);
       break;
     }
 

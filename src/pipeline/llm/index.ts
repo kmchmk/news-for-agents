@@ -12,6 +12,7 @@
 import { z } from "zod";
 import { GoogleGenAI, type ThinkingLevel } from "@google/genai";
 import { EMBEDDING_DIM } from "../../lib/config.js";
+import { recordUsage } from "./usage.js";
 
 export interface JsonRequest<T> {
   system: string;
@@ -108,6 +109,8 @@ function geminiLLM(): LLM {
             ...(thinkingLevel ? { thinkingConfig: { thinkingLevel } } : {}),
           },
         });
+        const u = res.usageMetadata;
+        recordUsage(model, { input: u?.promptTokenCount, output: u?.candidatesTokenCount, thinking: u?.thoughtsTokenCount });
         return schema.parse(parseJsonReply(res.text ?? ""));
       });
     },
@@ -132,6 +135,8 @@ function geminiEmbedder(): Embedder {
             },
           }),
         );
+        const tokens = (res.embeddings?.[0] as any)?.statistics?.tokenCount ?? Math.ceil(text.length / 4);
+        recordUsage(model, { input: tokens });
         out.push(normalize(res.embeddings?.[0]?.values ?? []));
       }
       return out;
@@ -160,6 +165,7 @@ function anthropicLLM(): LLM {
         });
         if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
         const data: any = await res.json();
+        recordUsage(model, { input: data.usage?.input_tokens, output: data.usage?.output_tokens });
         const text = data.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("") ?? "";
         return schema.parse(parseJsonReply(text));
       });
@@ -197,6 +203,7 @@ function openaiLLM(): LLM {
         });
         if (!res.ok) throw new Error(`OpenAI-compatible ${res.status}: ${await res.text()}`);
         const data: any = await res.json();
+        recordUsage(model, { input: data.usage?.prompt_tokens, output: data.usage?.completion_tokens });
         return schema.parse(parseJsonReply(data.choices?.[0]?.message?.content ?? ""));
       });
     },
@@ -218,6 +225,7 @@ function openaiEmbedder(): Embedder {
         if (!r.ok) throw new Error(`OpenAI-compatible embeddings ${r.status}: ${await r.text()}`);
         return r.json() as Promise<any>;
       });
+      recordUsage(model, { input: res.usage?.prompt_tokens });
       return res.data.map((d: any) => normalize(d.embedding));
     },
   };
